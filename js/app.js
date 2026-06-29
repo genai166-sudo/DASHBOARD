@@ -307,7 +307,7 @@ function initIntelAi() {
 document.addEventListener("DOMContentLoaded", () => {
   initClock();
   initNewsSearch();
-  loadTavilyNews(document.getElementById("news-search-input")?.value);
+  loadAllNews();
   initIntelBids();
   loadFxRates();
   initIntelAi();

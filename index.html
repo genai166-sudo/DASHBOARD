@@ -58,20 +58,49 @@
         <div class="intel-card__header">
           <span class="intel-card__icon">📰</span>
           <h2>방산 뉴스</h2>
-          <span class="intel-card__badge" id="news-badge">Tavily</span>
+          <span class="intel-card__badge intel-card__badge--live">Dual Feed</span>
         </div>
-        <form id="news-search-form" class="news-search">
-          <input
-            id="news-search-input"
-            type="search"
-            placeholder="방산·군수·NATO…"
-            value="방산 수출 NATO 방위산업"
-            autocomplete="off"
-          />
-          <button type="submit" aria-label="뉴스 검색">검색</button>
-        </form>
-        <p id="news-search-status" class="news-search-status" hidden></p>
-        <div class="intel-card__body panel__body--scroll" id="intel-news"></div>
+        <div class="news-dual">
+          <div class="news-panel news-panel--global">
+            <div class="news-panel__head">
+              <span class="news-panel__region">🌍 국외</span>
+              <span class="news-panel__provider news-panel__provider--tavily">Tavily</span>
+              <span class="news-panel__count" id="tavily-badge">—</span>
+            </div>
+            <form id="tavily-search-form" class="news-search">
+              <input
+                id="tavily-search-input"
+                type="search"
+                placeholder="NATO, defense export, Ukraine…"
+                value="defense industry NATO military export"
+                autocomplete="off"
+              />
+              <button type="submit" class="news-search__btn news-search__btn--tavily" aria-label="국외 뉴스 검색">검색</button>
+            </form>
+            <p id="tavily-search-status" class="news-search-status" hidden></p>
+            <div class="intel-card__body panel__body--scroll" id="intel-news-tavily"></div>
+          </div>
+          <div class="news-panel__divider" aria-hidden="true"></div>
+          <div class="news-panel news-panel--domestic">
+            <div class="news-panel__head">
+              <span class="news-panel__region">🇰🇷 국내</span>
+              <span class="news-panel__provider news-panel__provider--naver">Naver</span>
+              <span class="news-panel__count" id="naver-badge">—</span>
+            </div>
+            <form id="naver-search-form" class="news-search">
+              <input
+                id="naver-search-input"
+                type="search"
+                placeholder="방산, KAI, LIG, 국방…"
+                value="방산 수출 국방 KAI"
+                autocomplete="off"
+              />
+              <button type="submit" class="news-search__btn news-search__btn--naver" aria-label="국내 뉴스 검색">검색</button>
+            </form>
+            <p id="naver-search-status" class="news-search-status" hidden></p>
+            <div class="intel-card__body panel__body--scroll" id="intel-news-naver"></div>
+          </div>
+        </div>
       </article>
       <article class="intel-card intel-card--bid">
         <div class="intel-card__header">
@@ -159,13 +188,33 @@
 
     <!-- Bottom Row -->
     <section class="bottom-grid">
-      <article class="panel">
+      <article class="panel panel--news-dual">
         <div class="panel__header">
           <h2>최근 방산 동향</h2>
-          <span class="panel__tag" id="news-feed-tag">Tavily News</span>
+          <span class="panel__tag panel__tag--dual">국외 · 국내</span>
         </div>
-        <div class="panel__body panel__body--scroll">
-          <ul id="news-feed" class="news-list"></ul>
+        <div class="news-feed-dual">
+          <div class="news-feed-col news-feed-col--global">
+            <div class="news-feed-col__head">
+              <span>🌍 국외</span>
+              <span class="news-feed-col__provider">Tavily</span>
+              <span class="news-feed-col__tag" id="news-feed-tag-tavily">—</span>
+            </div>
+            <div class="panel__body panel__body--scroll">
+              <ul id="news-feed-tavily" class="news-list"></ul>
+            </div>
+          </div>
+          <div class="news-feed-col__divider" aria-hidden="true"></div>
+          <div class="news-feed-col news-feed-col--domestic">
+            <div class="news-feed-col__head">
+              <span>🇰🇷 국내</span>
+              <span class="news-feed-col__provider">Naver</span>
+              <span class="news-feed-col__tag" id="news-feed-tag-naver">—</span>
+            </div>
+            <div class="panel__body panel__body--scroll">
+              <ul id="news-feed-naver" class="news-list"></ul>
+            </div>
+          </div>
         </div>
       </article>
       <article class="panel">
@@ -196,6 +245,7 @@
 
   <script src="js/data.js"></script>
   <script src="js/tavily-client.js"></script>
+  <script src="js/naver-client.js"></script>
   <script src="js/news-service.js"></script>
   <script src="js/fx-service.js"></script>
   <script src="js/app.js"></script>

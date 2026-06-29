@@ -21,5 +21,6 @@ module.exports = async function handler(req, res) {
     runtime: "vercel-serverless",
     tavilyConfigured: Boolean(getEnvKey("TAVILY_API_KEY")),
     fxConfigured: Boolean(getEnvKey("EXCHANGERATE_API_KEY")),
+    naverConfigured: Boolean(getEnvKey("NAVER_CLIENT_ID") && getEnvKey("NAVER_CLIENT_SECRET")),
   });
 };
