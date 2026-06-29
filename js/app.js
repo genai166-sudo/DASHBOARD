@@ -264,53 +264,14 @@ function initIntelFx() {
   /* fx-service.js → loadFxRates() */
 }
 
-const INSIGHT_PREFIX = {
-  opportunity: "▲",
-  risk: "⚠",
-  watch: "◉",
-};
-
-function initIntelAi() {
-  const ai = DEFENSE_DATA.aiAnalysis;
-  const container = document.getElementById("intel-ai");
-
-  container.innerHTML = `
-    <div class="ai-brief">
-      <div class="ai-brief__top">
-        <span class="ai-brief__sentiment ai-brief__sentiment--${ai.sentiment}">${ai.sentimentLabel}</span>
-        <div class="ai-brief__confidence">
-          <span class="ai-brief__confidence-label">신뢰도</span>
-          <span class="ai-brief__confidence-value">${ai.confidence}%</span>
-        </div>
-      </div>
-      <p class="ai-brief__summary">${ai.summary}</p>
-      <ul class="ai-brief__insights">
-        ${ai.insights
-          .map(
-            (ins) =>
-              `<li class="ai-brief__insight ai-brief__insight--${ins.type}">${INSIGHT_PREFIX[ins.type]} ${ins.text}</li>`
-          )
-          .join("")}
-      </ul>
-      <div class="ai-brief__scores">
-        ${ai.sectorScores
-          .map(
-            (s) =>
-              `<div class="ai-score"><span class="ai-score__name">${s.name}</span><span class="ai-score__value">${s.score}</span></div>`
-          )
-          .join("")}
-      </div>
-      <div class="ai-brief__footer">${ai.generatedAt}</div>
-    </div>`;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   initClock();
   initNewsSearch();
-  loadAllNews();
+  initGeminiAnalysis();
+  renderFallbackNews("tavily");
+  renderFallbackNews("naver");
   initIntelBids();
-  loadFxRates();
-  initIntelAi();
+  renderFxFallback();
   initRegionalChart();
   initWeaponsChart();
   initGdpChart();
@@ -318,4 +279,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initTechChart();
   initKoreaChart();
   initConflictIndex();
+  loadAllNews();
+  loadFxRates();
 });

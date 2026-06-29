@@ -7,6 +7,23 @@ const DEFAULT_TAVILY_QUERY =
 
 const DEFAULT_NAVER_QUERY = "방산 수출 국방 KAI LIG";
 
+let collectedTavilyNews = [];
+let collectedNaverNews = [];
+
+function getCollectedTavilyNews() {
+  return collectedTavilyNews;
+}
+
+function getCollectedNaverNews() {
+  return collectedNaverNews;
+}
+
+function storeCollectedNews(provider, items) {
+  if (provider === "tavily") collectedTavilyNews = items;
+  else collectedNaverNews = items;
+  if (typeof scheduleGeminiAnalysis === "function") scheduleGeminiAnalysis();
+}
+
 const NEWS_TAG_LABELS = {
   budget: { text: "예산", class: "tag--budget" },
   export: { text: "수출", class: "tag--export" },
@@ -239,8 +256,8 @@ function renderNewsFeed(items, list) {
     .join("");
 }
 
-function renderFallbackNews(provider) {
-  const mock = (DEFENSE_DATA?.news || []).map((item) => ({
+function buildMockNewsItems() {
+  return (DEFENSE_DATA?.news || []).map((item) => ({
     title: item.title,
     summary: item.summary,
     url: "#",
@@ -250,6 +267,10 @@ function renderFallbackNews(provider) {
     hot: false,
     source: "목업",
   }));
+}
+
+function renderFallbackNews(provider) {
+  const mock = buildMockNewsItems();
 
   renderIntelNews(mock, document.getElementById(`intel-news-${provider}`));
   renderNewsFeed(mock, document.getElementById(`news-feed-${provider}`));
@@ -259,6 +280,8 @@ function renderFallbackNews(provider) {
 
   const badge = document.getElementById(`${provider}-badge`);
   if (badge) badge.textContent = "목업";
+
+  storeCollectedNews(provider, mock);
 }
 
 function serverHint() {
@@ -280,6 +303,7 @@ async function loadTavilyNews(query) {
 
   try {
     const items = await fetchTavilyNews(searchQuery);
+    storeCollectedNews("tavily", items);
     renderIntelNews(items, document.getElementById("intel-news-tavily"));
     renderNewsFeed(items, document.getElementById("news-feed-tavily"));
 
@@ -313,6 +337,7 @@ async function loadNaverNews(query) {
 
   try {
     const items = await fetchNaverNews(searchQuery);
+    storeCollectedNews("naver", items);
     renderIntelNews(items, document.getElementById("intel-news-naver"));
     renderNewsFeed(items, document.getElementById("news-feed-naver"));
 

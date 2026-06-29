@@ -12,14 +12,19 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT / "lib"))
+from worldbank_proxy import fetch_worldbank_stats  # noqa: E402
+from gemini_proxy import analyze_defense_news, get_gemini_key  # noqa: E402
 PORT = int(os.environ.get("PORT", "3000"))
 TAVILY_URL = "https://api.tavily.com/search"
 NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
@@ -32,6 +37,23 @@ ALLOWED_BODY_KEYS = frozenset({
     "include_images", "include_answer", "include_raw_content",
     "include_domains", "exclude_domains",
 })
+
+_response_cache: dict[str, tuple[float, object]] = {}
+
+
+def cache_get(key: str, ttl_sec: int):
+    entry = _response_cache.get(key)
+    if not entry:
+        return None
+    ts, value = entry
+    if time.time() - ts > ttl_sec:
+        _response_cache.pop(key, None)
+        return None
+    return value
+
+
+def cache_set(key: str, value: object) -> None:
+    _response_cache[key] = (time.time(), value)
 
 
 def load_env(path: Path) -> None:
@@ -126,7 +148,7 @@ def tavily_search(body: dict) -> tuple[int, dict]:
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=15) as resp:
             return 200, json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8", errors="replace")
@@ -218,35 +240,33 @@ def build_rate_rows(current: dict, previous: dict | None) -> list:
 
 
 def fetch_fx_rates() -> tuple[int, dict]:
+    cached = cache_get("fx_rates", 300)
+    if cached:
+        return cached
+
     usd_base = None
-    source = "exchangerate-api"
+    source = "open.er-api"
+
+    try:
+        data = http_get_json(OPEN_ER_API_URL, timeout=12)
+        if data.get("result") == "success":
+            usd_base = data.get("rates")
+    except RuntimeError as e:
+        print(f"WARNING: open.er-api error ({e})", file=sys.stderr)
 
     fx_key = get_fx_key()
-    if fx_key:
+    if not usd_base and fx_key:
         try:
-            data = http_get_json(f"{EXCHANGE_RATE_API_URL}/{fx_key}/latest/USD")
+            data = http_get_json(f"{EXCHANGE_RATE_API_URL}/{fx_key}/latest/USD", timeout=5)
             if data.get("result") == "success":
                 usd_base = data.get("conversion_rates")
-            else:
-                print(
-                    f"WARNING: ExchangeRate-API failed ({data.get('error-type', 'unknown')}) — fallback",
-                    file=sys.stderr,
-                )
+                source = "exchangerate-api"
         except RuntimeError as e:
-            print(f"WARNING: ExchangeRate-API error ({e}) — fallback", file=sys.stderr)
+            print(f"WARNING: ExchangeRate-API error ({e})", file=sys.stderr)
 
     if not usd_base:
         try:
-            data = http_get_json(OPEN_ER_API_URL)
-            if data.get("result") == "success":
-                usd_base = data.get("rates")
-                source = "open.er-api"
-        except RuntimeError as e:
-            print(f"WARNING: open.er-api error ({e}) — Frankfurter fallback", file=sys.stderr)
-
-    if not usd_base:
-        try:
-            data = http_get_json(f"{FRANKFURTER_URL}/latest?from=USD&to=KRW,EUR,JPY,CNY")
+            data = http_get_json(f"{FRANKFURTER_URL}/latest?from=USD&to=KRW,EUR,JPY,CNY", timeout=12)
             usd_base = data.get("rates")
             source = "frankfurter"
         except RuntimeError as e:
@@ -258,25 +278,39 @@ def fetch_fx_rates() -> tuple[int, dict]:
         return 502, {"error": str(e)}
 
     previous = None
-    try:
-        prev_date = (date.today() - timedelta(days=1)).isoformat()
-        prev_data = http_get_json(f"{FRANKFURTER_URL}/{prev_date}?from=USD&to=KRW,EUR,JPY,CNY")
-        if prev_data.get("rates"):
-            previous = calc_pair_rates(prev_data["rates"])
-    except RuntimeError:
-        pass
-
     usd_trend = {"labels": [], "data": []}
-    try:
-        end = date.today()
-        start = end - timedelta(days=6)
-        hist = http_get_json(f"{FRANKFURTER_URL}/{start}..{end}?from=USD&to=KRW")
-        for day in sorted(hist.get("rates", {}).keys()):
-            d = date.fromisoformat(day)
-            usd_trend["labels"].append(f"{d.month}/{d.day}")
-            usd_trend["data"].append(hist["rates"][day]["KRW"])
-    except RuntimeError:
-        pass
+    prev_date = (date.today() - timedelta(days=1)).isoformat()
+    end = date.today()
+    start = end - timedelta(days=6)
+
+    def _fetch_prev():
+        return http_get_json(
+            f"{FRANKFURTER_URL}/{prev_date}?from=USD&to=KRW,EUR,JPY,CNY", timeout=8
+        )
+
+    def _fetch_hist():
+        return http_get_json(
+            f"{FRANKFURTER_URL}/{start}..{end}?from=USD&to=KRW", timeout=8
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = {
+            pool.submit(_fetch_prev): "prev",
+            pool.submit(_fetch_hist): "hist",
+        }
+        for fut in as_completed(futures, timeout=10):
+            kind = futures[fut]
+            try:
+                data = fut.result()
+                if kind == "prev" and data.get("rates"):
+                    previous = calc_pair_rates(data["rates"])
+                elif kind == "hist":
+                    for day in sorted(data.get("rates", {}).keys()):
+                        d = date.fromisoformat(day)
+                        usd_trend["labels"].append(f"{d.month}/{d.day}")
+                        usd_trend["data"].append(data["rates"][day]["KRW"])
+            except Exception:
+                pass
 
     from datetime import datetime
     try:
@@ -286,13 +320,15 @@ def fetch_fx_rates() -> tuple[int, dict]:
         now = datetime.now()
     updated = now.strftime("%Y-%m-%d %H:%M KST")
 
-    return 200, {
+    result = (200, {
         "updated": updated,
         "source": source,
         "live": True,
         "rates": build_rate_rows(current, previous),
         "usdTrend": usd_trend,
-    }
+    })
+    cache_set("fx_rates", result)
+    return result
 
 
 class DashboardHandler(SimpleHTTPRequestHandler):
@@ -321,7 +357,24 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if path == "/api/naver/search":
             self.handle_naver_search_post()
             return
+        if path == "/api/gemini/analyze":
+            self.handle_gemini_analyze()
+            return
         self.send_error(404, "Not Found")
+
+    def handle_gemini_analyze(self) -> None:
+        length = int(self.headers.get("Content-Length", 0))
+        if length > 500_000:
+            self.send_json(413, {"error": "Payload too large"})
+            return
+        try:
+            raw = self.rfile.read(length).decode("utf-8") if length else "{}"
+            body = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            self.send_json(400, {"error": "Invalid JSON"})
+            return
+        status, data = analyze_defense_news(body)
+        self.send_json(status, data)
 
     def handle_naver_search_post(self) -> None:
         length = int(self.headers.get("Content-Length", 0))
@@ -367,6 +420,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "tavilyConfigured": bool(get_tavily_key()),
                 "fxConfigured": bool(get_fx_key()),
                 "naverConfigured": bool(client_id and client_secret),
+                "geminiConfigured": bool(get_gemini_key()),
             })
             return
         if path == "/api/naver/search":
@@ -378,6 +432,18 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if path == "/api/fx/rates":
             status, data = fetch_fx_rates()
             self.send_json(status, data)
+            return
+        if path == "/api/stats/worldbank":
+            cached = cache_get("worldbank_stats", 900)
+            if cached:
+                self.send_json(200, cached)
+                return
+            try:
+                data = fetch_worldbank_stats()
+                cache_set("worldbank_stats", data)
+                self.send_json(200, data)
+            except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, KeyError, IndexError) as e:
+                self.send_json(502, {"error": f"World Bank fetch failed: {e}"})
             return
         if path == "/":
             self.path = "/index.html"
@@ -394,12 +460,16 @@ def main() -> None:
     print(f"Tavily API: POST http://localhost:{PORT}/api/tavily/search")
     print(f"Naver API:  GET  http://localhost:{PORT}/api/naver/search?query=방산")
     print(f"FX API:     GET  http://localhost:{PORT}/api/fx/rates")
+    print(f"Stats API:  GET  http://localhost:{PORT}/api/stats/worldbank")
+    print(f"Gemini API: POST http://localhost:{PORT}/api/gemini/analyze")
 
     if not get_tavily_key():
         print("WARNING: TAVILY_API_KEY not set", file=sys.stderr)
     client_id, client_secret = get_naver_credentials()
     if not client_id or not client_secret:
         print("WARNING: NAVER_CLIENT_ID / NAVER_CLIENT_SECRET not set", file=sys.stderr)
+    if not get_gemini_key():
+        print("WARNING: GEMINI_API_KEY not set", file=sys.stderr)
     if not get_fx_key():
         print("WARNING: EXCHANGERATE_API_KEY not set — Frankfurter fallback for FX", file=sys.stderr)
 

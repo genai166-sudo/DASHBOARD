@@ -191,6 +191,35 @@ body {
 .kpi-card__change.down { color: var(--danger); }
 .kpi-card__change.neutral { color: var(--warning); }
 
+.kpi-card__source {
+  display: block;
+  margin-top: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.kpi-card--mock .kpi-card__source {
+  color: #ff8080;
+}
+
+.panel__tag--mock {
+  color: #ff8080 !important;
+  font-size: 0.58rem;
+}
+
+.bid-item--link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+}
+
+.bid-item--link:hover {
+  background: rgba(61, 214, 140, 0.06);
+}
+
 /* Intelligence Cards */
 .intel-grid {
   display: grid;
@@ -674,6 +703,41 @@ body {
 .ai-brief__sentiment--neutral {
   background: rgba(240, 160, 48, 0.15);
   color: var(--warning);
+}
+
+.ai-brief__sentiment--negative {
+  background: rgba(232, 85, 85, 0.15);
+  color: #ff8080;
+}
+
+.intel-card__badge--ai-live {
+  color: #b48cff;
+  background: rgba(180, 140, 255, 0.18);
+}
+
+.ai-brief__hint {
+  margin-top: 0.5rem;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.ai-brief__refresh {
+  display: block;
+  width: 100%;
+  margin-top: 0.65rem;
+  padding: 0.4rem;
+  border: 1px solid rgba(180, 140, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(180, 140, 255, 0.08);
+  color: #b48cff;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.ai-brief__refresh:hover {
+  background: rgba(180, 140, 255, 0.16);
 }
 
 .ai-brief__confidence {

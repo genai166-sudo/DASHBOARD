@@ -4,16 +4,10 @@
 
 let fxChartInstance = null;
 
-const FX_SOURCE_LABELS = {
-  "exchangerate-api": "실시간",
-  "open.er-api": "실시간",
-  frankfurter: "ECB",
-};
-
 async function fetchFxData() {
   let res;
   try {
-    res = await fetch("/api/fx/rates", { cache: "no-store" });
+    res = await fetch("/api/fx/rates");
   } catch {
     throw new Error("환율 서버에 연결할 수 없습니다. python server.py 실행 여부를 확인하세요.");
   }
@@ -25,20 +19,12 @@ async function fetchFxData() {
   return data;
 }
 
-function formatFxBadge(exchangeRates) {
-  const source = exchangeRates.source || "";
-  const label = FX_SOURCE_LABELS[source] || (exchangeRates.live ? "실시간" : source);
-  const timePart = exchangeRates.updated?.split(" ").slice(1, 3).join(" ") || "";
-  return timePart ? `${label} · ${timePart}` : label || "—";
-}
-
 function renderFxRates(exchangeRates) {
   const updatedEl = document.getElementById("fx-updated");
   if (updatedEl) {
-    updatedEl.textContent = formatFxBadge(exchangeRates);
+    const timePart = exchangeRates.updated?.split(" ").slice(1, 3).join(" ") || exchangeRates.updated;
+    updatedEl.textContent = timePart || "—";
     updatedEl.title = `${exchangeRates.source || ""} · ${exchangeRates.updated || ""}`;
-    updatedEl.classList.toggle("fx-updated--live", Boolean(exchangeRates.live));
-    updatedEl.classList.toggle("fx-updated--mock", !exchangeRates.live);
   }
 
   const list = document.getElementById("fx-rates");
@@ -62,13 +48,11 @@ function renderFxChart(exchangeRates) {
   const canvas = document.getElementById("chart-fx");
   if (!canvas || !exchangeRates.usdTrend) return;
 
-  const trend = exchangeRates.usdTrend;
-  if (!trend.data?.length) return;
-
   if (fxChartInstance) {
     fxChartInstance.destroy();
   }
 
+  const trend = exchangeRates.usdTrend;
   fxChartInstance = new Chart(canvas, {
     type: "line",
     data: {
@@ -111,18 +95,13 @@ function renderFxChart(exchangeRates) {
   });
 }
 
-function renderFxFallback(errMessage) {
+function renderFxFallback() {
   const mock = DEFENSE_DATA?.exchangeRates;
   if (!mock) return;
-  renderFxRates({ ...mock, live: false });
+  renderFxRates(mock);
   renderFxChart(mock);
   const updatedEl = document.getElementById("fx-updated");
-  if (updatedEl) {
-    updatedEl.textContent = "목업";
-    updatedEl.title = errMessage || "API 실패 — 목업 데이터";
-    updatedEl.classList.add("fx-updated--mock");
-    updatedEl.classList.remove("fx-updated--live");
-  }
+  if (updatedEl) updatedEl.textContent = "목업";
 }
 
 async function loadFxRates() {
@@ -132,6 +111,6 @@ async function loadFxRates() {
     renderFxChart(data);
   } catch (err) {
     console.warn("FX API error:", err.message);
-    renderFxFallback(err.message);
+    renderFxFallback();
   }
 }

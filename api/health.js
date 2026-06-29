@@ -22,5 +22,6 @@ module.exports = async function handler(req, res) {
     tavilyConfigured: Boolean(getEnvKey("TAVILY_API_KEY")),
     fxConfigured: Boolean(getEnvKey("EXCHANGERATE_API_KEY")),
     naverConfigured: Boolean(getEnvKey("NAVER_CLIENT_ID") && getEnvKey("NAVER_CLIENT_SECRET")),
+    geminiConfigured: Boolean(getEnvKey("GEMINI_API_KEY")),
   });
 };
