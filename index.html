@@ -65,11 +65,12 @@
             id="news-search-input"
             type="search"
             placeholder="방산·군수·NATO…"
-            value="defense industry Korea military export"
+            value="방산 수출 NATO 방위산업"
             autocomplete="off"
           />
           <button type="submit" aria-label="뉴스 검색">검색</button>
         </form>
+        <p id="news-search-status" class="news-search-status" hidden></p>
         <div class="intel-card__body panel__body--scroll" id="intel-news"></div>
       </article>
       <article class="intel-card intel-card--bid">
@@ -196,6 +197,7 @@
   <script src="js/data.js"></script>
   <script src="js/tavily-client.js"></script>
   <script src="js/news-service.js"></script>
+  <script src="js/fx-service.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

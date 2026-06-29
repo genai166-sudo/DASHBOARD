@@ -39,6 +39,7 @@ python server.py
 | Method | Path | 로컬 | Vercel |
 |--------|------|------|--------|
 | POST | `/api/tavily/search` | server.py | api/tavily/search.js |
+| GET | `/api/fx/rates` | server.py | api/fx/rates.js |
 | GET | `/api/health` | server.py | api/health.js |
 
 프론트는 `js/tavily-client.js` → `/api/tavily/search` (키 없음)

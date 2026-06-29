@@ -1,5 +1,10 @@
 /** GET /api/health — 배포·로컬 서버 상태 확인 */
 
+function getEnvKey(name) {
+  const raw = process.env[name] || "";
+  return raw.trim().replace(/^["']|["']$/g, "");
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -14,12 +19,7 @@ module.exports = async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     runtime: "vercel-serverless",
-    tavilyConfigured: Boolean(getApiKey()),
-    keyPrefix: getApiKey().startsWith("tvly-") ? "tvly-..." : "invalid-format",
+    tavilyConfigured: Boolean(getEnvKey("TAVILY_API_KEY")),
+    fxConfigured: Boolean(getEnvKey("EXCHANGERATE_API_KEY")),
   });
 };
-
-function getApiKey() {
-  const raw = process.env.TAVILY_API_KEY || "";
-  return raw.trim().replace(/^["']|["']$/g, "");
-}

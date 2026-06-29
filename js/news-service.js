@@ -3,7 +3,15 @@
  */
 
 const DEFAULT_NEWS_QUERY =
-  "defense industry military weapons export NATO Korea 방산 방위산업";
+  "방산 수출 NATO 방위산업 defense industry Korea military";
+
+const NEWS_TAG_LABELS = {
+  budget: { text: "예산", class: "tag--budget" },
+  export: { text: "수출", class: "tag--export" },
+  tech: { text: "기술", class: "tag--tech" },
+  conflict: { text: "분쟁", class: "tag--conflict" },
+  alliance: { text: "동맹", class: "tag--alliance" },
+};
 
 const TAG_KEYWORDS = [
   { tag: "conflict", patterns: /war|conflict|ukraine|middle east|분쟁|전쟁|러시아|우크라/i },
@@ -93,20 +101,46 @@ function mapTavilyResults(data) {
   }));
 }
 
-async function fetchDefenseNews(query = DEFAULT_NEWS_QUERY) {
-  const data = await tavilySearch(query, {
-    topic: "news",
+async function fetchDefenseNews(query) {
+  const opts = {
     search_depth: "basic",
     max_results: 10,
-    days: 14,
     include_answer: false,
-  });
+  };
+
+  try {
+    const data = await tavilySearch(query, { ...opts, topic: "news", days: 14 });
+    const items = mapTavilyResults(data);
+    if (items.length) return items;
+  } catch (err) {
+    if (/deactivated|not configured|401/i.test(err.message)) throw err;
+  }
+
+  const data = await tavilySearch(query, { ...opts, topic: "general" });
   return mapTavilyResults(data);
+}
+
+function setSearchStatus(message, type = "info") {
+  const el = document.getElementById("news-search-status");
+  if (!el) return;
+  el.hidden = !message;
+  el.className = `news-search-status news-search-status--${type}`;
+  el.textContent = message;
+}
+
+function setSearchLoading(loading) {
+  const btn = document.querySelector("#news-search-form button");
+  const input = document.getElementById("news-search-input");
+  if (btn) {
+    btn.disabled = loading;
+    btn.textContent = loading ? "…" : "검색";
+  }
+  if (input) input.disabled = loading;
 }
 
 function renderIntelNews(items, container) {
   if (!items.length) {
-    container.innerHTML = `<div class="news-empty">검색 결과가 없습니다.</div>`;
+    container.innerHTML = `<div class="news-empty">검색 결과가 없습니다. 다른 키워드로 시도해 보세요.</div>`;
     return;
   }
 
@@ -133,7 +167,7 @@ function renderNewsFeed(items, list) {
 
   list.innerHTML = items
     .map((item) => {
-      const tag = TAG_LABELS[item.tag] || TAG_LABELS.export;
+      const tag = NEWS_TAG_LABELS[item.tag] || NEWS_TAG_LABELS.export;
       return `
         <li class="news-item">
           <span class="news-item__date">${escapeHtml(item.date)}</span>
@@ -151,6 +185,25 @@ function renderNewsFeed(items, list) {
     .join("");
 }
 
+function renderFallbackNews() {
+  const mock = (DEFENSE_DATA?.news || []).map((item) => ({
+    title: item.title,
+    summary: item.summary,
+    url: "#",
+    date: item.date,
+    time: item.date?.slice(5) || "—",
+    tag: item.tag || "export",
+    hot: false,
+    source: "목업",
+  }));
+
+  renderIntelNews(mock, document.getElementById("intel-news"));
+  renderNewsFeed(mock, document.getElementById("news-feed"));
+
+  const feedTag = document.getElementById("news-feed-tag");
+  if (feedTag) feedTag.textContent = `${mock.length}건 · 목업`;
+}
+
 function setNewsLoading(isLoading) {
   const intel = document.getElementById("intel-news");
   const feed = document.getElementById("news-feed");
@@ -163,17 +216,16 @@ function setNewsLoading(isLoading) {
   }
 }
 
-function setNewsError(message) {
-  const html = `<div class="news-error">${escapeHtml(message)}</div>`;
-  document.getElementById("intel-news").innerHTML = html;
-  document.getElementById("news-feed").innerHTML = `<li>${html}</li>`;
-  const badge = document.getElementById("news-badge");
-  if (badge) badge.textContent = "오류";
-}
-
 async function loadTavilyNews(query) {
   const searchQuery = (query || DEFAULT_NEWS_QUERY).trim();
+  if (!searchQuery) {
+    setSearchStatus("검색어를 입력하세요.", "error");
+    return;
+  }
+
+  setSearchLoading(true);
   setNewsLoading(true);
+  setSearchStatus("");
 
   try {
     const items = await fetchDefenseNews(searchQuery);
@@ -185,12 +237,21 @@ async function loadTavilyNews(query) {
 
     const feedTag = document.getElementById("news-feed-tag");
     if (feedTag) feedTag.textContent = `${items.length}건 · Tavily`;
+
+    setSearchStatus(`${items.length}건 검색 완료`, "ok");
   } catch (err) {
     const hint =
       window.location.protocol === "file:"
-        ? "file:// 로는 API 호출이 안 됩니다. python server.py 로 실행하세요."
-        : "python server.py 실행 및 .env 의 TAVILY_API_KEY 를 확인하세요.";
-    setNewsError(`${err.message} — ${hint}`);
+        ? "file:// 로는 안 됩니다 → python server.py"
+        : "python server.py 재시작 또는 Vercel Env + 재배포";
+
+    setSearchStatus(`${err.message} (${hint})`, "error");
+    renderFallbackNews();
+
+    const badge = document.getElementById("news-badge");
+    if (badge) badge.textContent = "오류";
+  } finally {
+    setSearchLoading(false);
   }
 }
 

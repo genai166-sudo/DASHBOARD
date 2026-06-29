@@ -261,63 +261,7 @@ function initIntelBids() {
 }
 
 function initIntelFx() {
-  const { exchangeRates } = DEFENSE_DATA;
-  document.getElementById("fx-updated").textContent = exchangeRates.updated.split(" ")[1] || exchangeRates.updated;
-
-  const list = document.getElementById("fx-rates");
-  list.innerHTML = exchangeRates.rates
-    .map((r) => {
-      const dir = r.change >= 0 ? "up" : "down";
-      const sign = r.change >= 0 ? "+" : "";
-      return `
-        <div class="fx-row">
-          <span class="fx-row__pair">${r.pair}</span>
-          <span class="fx-row__value">${r.value.toLocaleString("ko-KR", { minimumFractionDigits: 2 })}</span>
-          <span class="fx-row__change ${dir}">${sign}${r.change.toFixed(2)} (${sign}${r.changePct.toFixed(2)}%)</span>
-        </div>`;
-    })
-    .join("");
-
-  new Chart(document.getElementById("chart-fx"), {
-    type: "line",
-    data: {
-      labels: exchangeRates.usdTrend.labels,
-      datasets: [{
-        label: "USD/KRW",
-        data: exchangeRates.usdTrend.data,
-        borderColor: "#f0a030",
-        backgroundColor: "rgba(240, 160, 48, 0.08)",
-        borderWidth: 1.5,
-        pointRadius: 0,
-        tension: 0.35,
-        fill: true,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => ctx.parsed.y.toFixed(2) + "원",
-          },
-        },
-      },
-      scales: {
-        x: {
-          display: true,
-          grid: { display: false },
-          ticks: { font: { size: 9 }, maxTicksLimit: 5 },
-        },
-        y: {
-          display: false,
-          min: Math.min(...exchangeRates.usdTrend.data) - 5,
-          max: Math.max(...exchangeRates.usdTrend.data) + 5,
-        },
-      },
-    },
-  });
+  /* fx-service.js → loadFxRates() */
 }
 
 const INSIGHT_PREFIX = {
@@ -365,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNewsSearch();
   loadTavilyNews(document.getElementById("news-search-input")?.value);
   initIntelBids();
-  initIntelFx();
+  loadFxRates();
   initIntelAi();
   initRegionalChart();
   initWeaponsChart();

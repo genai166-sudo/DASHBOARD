@@ -25,6 +25,9 @@ js/tavily-client.js  ← 프론트: /api/tavily/search 만 호출 (키 없음)
 
    ```
    TAVILY_API_KEY=tvly-xxxxxxxx
+
+   # ExchangeRate-API — https://www.exchangerate-api.com/
+   EXCHANGERATE_API_KEY=xxxxxxxx
    ```
 
 3. Python으로 로컬 서버 실행:

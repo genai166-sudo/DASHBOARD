@@ -27,6 +27,7 @@ Vercel Dashboard → **Settings → Environment Variables**
 | Name | Value | Environment |
 |------|-------|-------------|
 | `TAVILY_API_KEY` | (본인 키) | Production, Preview, Development |
+| `EXCHANGERATE_API_KEY` | (본인 키) | Production, Preview, Development |
 
 <p style="color:red;font-weight:bold">.env 파일 업로드 금지. Vercel UI에서만 등록.</p>
 

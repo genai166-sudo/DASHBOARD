@@ -360,6 +360,34 @@ body {
   background: rgba(61, 214, 140, 0.25);
 }
 
+.news-search button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.news-search-status {
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--border);
+}
+
+.news-search-status--ok {
+  color: var(--accent);
+  background: rgba(61, 214, 140, 0.08);
+}
+
+.news-search-status--error {
+  color: #ff8080;
+  background: rgba(232, 85, 85, 0.12);
+  font-weight: 500;
+}
+
+.news-search-status--info {
+  color: var(--text-secondary);
+}
+
 .news-item__link {
   color: var(--text-primary);
   text-decoration: none;
