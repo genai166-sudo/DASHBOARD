@@ -9,7 +9,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { tavilySearch } = require("./lib/tavily-proxy");
+const { tavilySearch } = require("../lib/tavily-proxy");
 
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 

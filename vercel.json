@@ -1,15 +1,20 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": null,
-  "outputDirectory": ".",
+  "functions": {
+    "api/**/*.js": {
+      "memory": 256,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
-    { "source": "/api/tavily/search", "destination": "/api/tavily/search" }
+    { "source": "/weather", "destination": "/weather/weather.html" }
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" }
+        { "key": "Cache-Control", "value": "no-store" }
       ]
     }
   ]

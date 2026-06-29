@@ -138,6 +138,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = self.path.split("?")[0]
+        if path == "/api/health":
+            self.send_json(200, {
+                "ok": True,
+                "runtime": "python",
+                "tavilyConfigured": bool(os.environ.get("TAVILY_API_KEY")),
+            })
+            return
         if path == "/":
             self.path = "/index.html"
         elif path == "/weather":

@@ -7,9 +7,9 @@ Tavily API 키는 **브라우저·Git·Cursor AI에 노출되면 안 됩니다.*
 ```
 .env                 ← 실제 키 (Git·AI 차단, 로컬 전용)
 .env.example         ← 템플릿만 (키 없음, 커밋 가능)
-server.py            ← Python 로컬 서버 (권장)
-server/lib/          ← Node용 Tavily 프록시 (선택)
-api/tavily/search.js ← Vercel 배포용 프록시
+server.py            ← Python 로컬 (GET /api/health 포함)
+lib/tavily-proxy.js  ← Vercel Serverless + Node dev-server 공통
+api/tavily/search.js ← Vercel 배포용api/tavily/search.js ← Vercel 배포용 프록시
 js/tavily-client.js  ← 프론트: /api/tavily/search 만 호출 (키 없음)
 ```
 
@@ -37,12 +37,12 @@ js/tavily-client.js  ← 프론트: /api/tavily/search 만 호출 (키 없음)
 
 (Node.js가 설치되어 있으면 `npm run dev` 도 가능합니다.)
 
-## 배포 (Vercel 등)
+## 배포 (Vercel)
 
 - `.env` 파일은 **업로드하지 않습니다**
-- 호스팅 대시보드 → **Environment Variables** 에 `TAVILY_API_KEY` 등록
-- Production / Preview 각각 설정 가능
-
+- Vercel Dashboard → **Settings → Environment Variables** → `TAVILY_API_KEY`
+- Production / Preview / Development 모두 등록
+- 배포 가이드: [DEPLOY.md](./DEPLOY.md)
 ## 절대 하지 말 것
 
 - `js/*.js`, `index.html` 에 API 키 직접 작성

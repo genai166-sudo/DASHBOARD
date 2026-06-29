@@ -1,14 +1,33 @@
 /**
- * Vercel Serverless — 배포 시 Vercel 대시보드에 TAVILY_API_KEY 환경변수 등록
- * (.env 파일은 배포에 포함되지 않음)
+ * Vercel Serverless Function
+ * Route: POST /api/tavily/search
+ *
+ * 배포 전 Vercel Dashboard → Settings → Environment Variables
+ *   TAVILY_API_KEY = (your key)
  */
 
-const { tavilySearch } = require("../../server/lib/tavily-proxy");
+const { tavilySearch } = require("../../lib/tavily-proxy");
 
-module.exports = async function handler(req, res) {
+function parseBody(req) {
+  if (!req.body) return {};
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return req.body;
+}
+
+function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+module.exports = async function handler(req, res) {
+  setCors(res);
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
@@ -19,7 +38,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const data = await tavilySearch(req.body);
+    const data = await tavilySearch(parseBody(req));
     return res.status(200).json(data);
   } catch (err) {
     return res.status(err.status || 500).json({ error: err.message });
