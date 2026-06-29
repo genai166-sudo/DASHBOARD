@@ -664,6 +664,50 @@ body {
   font-weight: 600;
 }
 
+.fx-chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.fx-intervals {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.fx-interval {
+  padding: 0.2rem 0.45rem;
+  border: 1px solid rgba(36, 48, 68, 0.9);
+  border-radius: 4px;
+  background: rgba(15, 22, 32, 0.6);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.fx-interval:hover {
+  color: var(--text-secondary);
+  border-color: rgba(240, 160, 48, 0.35);
+}
+
+.fx-interval--active {
+  color: #f0a030;
+  border-color: rgba(240, 160, 48, 0.55);
+  background: rgba(240, 160, 48, 0.1);
+}
+
+.fx-chart-hint {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+}
+
 .fx-chart-wrap {
   height: 80px;
   position: relative;

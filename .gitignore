@@ -15,7 +15,7 @@ __pycache__/
 venv/
 .venv/
 
-# OS / IDE
+.data/
 .DS_Store
 Thumbs.db
 *.log

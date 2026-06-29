@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -25,6 +26,8 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "lib"))
 from worldbank_proxy import fetch_worldbank_stats  # noqa: E402
 from gemini_proxy import analyze_defense_news, get_gemini_key  # noqa: E402
+from prompt_loader import KNOWN_PROMPTS  # noqa: E402
+from fx_history import fetch_fx_chart, record_snapshot  # noqa: E402
 PORT = int(os.environ.get("PORT", "3000"))
 TAVILY_URL = "https://api.tavily.com/search"
 NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
@@ -277,6 +280,8 @@ def fetch_fx_rates() -> tuple[int, dict]:
     except RuntimeError as e:
         return 502, {"error": str(e)}
 
+    record_snapshot(current["KRW"])
+
     previous = None
     usd_trend = {"labels": [], "data": []}
     prev_date = (date.today() - timedelta(days=1)).isoformat()
@@ -433,6 +438,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             status, data = fetch_fx_rates()
             self.send_json(status, data)
             return
+        if path == "/api/fx/chart":
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            interval = (qs.get("interval", ["1d"])[0] or "1d").strip()
+            if interval not in {"1m", "10m", "30m", "1d", "1M"}:
+                self.send_json(400, {"error": "interval must be 1m, 10m, 30m, 1d, or 1M"})
+                return
+            chart = fetch_fx_chart(interval, http_get_json)
+            self.send_json(200, chart)
+            return
         if path == "/api/stats/worldbank":
             cached = cache_get("worldbank_stats", 900)
             if cached:
@@ -452,6 +467,21 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
 
+def fx_snapshot_worker() -> None:
+    while True:
+        try:
+            data = http_get_json(OPEN_ER_API_URL, timeout=10)
+            if data.get("result") == "success":
+                krw = (data.get("rates") or {}).get("KRW")
+                if krw:
+                    record_snapshot(krw)
+                    time.sleep(60)
+                    continue
+        except Exception:
+            pass
+        time.sleep(60)
+
+
 def main() -> None:
     load_env(ROOT / ".env")
 
@@ -460,8 +490,10 @@ def main() -> None:
     print(f"Tavily API: POST http://localhost:{PORT}/api/tavily/search")
     print(f"Naver API:  GET  http://localhost:{PORT}/api/naver/search?query=방산")
     print(f"FX API:     GET  http://localhost:{PORT}/api/fx/rates")
+    print(f"FX Chart:   GET  http://localhost:{PORT}/api/fx/chart?interval=1d")
     print(f"Stats API:  GET  http://localhost:{PORT}/api/stats/worldbank")
     print(f"Gemini API: POST http://localhost:{PORT}/api/gemini/analyze")
+    print(f"Prompts:    prompt/ ({', '.join(KNOWN_PROMPTS)})")
 
     if not get_tavily_key():
         print("WARNING: TAVILY_API_KEY not set", file=sys.stderr)
@@ -472,6 +504,8 @@ def main() -> None:
         print("WARNING: GEMINI_API_KEY not set", file=sys.stderr)
     if not get_fx_key():
         print("WARNING: EXCHANGERATE_API_KEY not set — Frankfurter fallback for FX", file=sys.stderr)
+
+    threading.Thread(target=fx_snapshot_worker, daemon=True).start()
 
     try:
         server.serve_forever()

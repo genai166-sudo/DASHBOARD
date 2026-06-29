@@ -10,6 +10,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 
+from prompt_loader import load_all_prompts, render_prompt
+
+load_all_prompts()
+
 GEMINI_MODEL = "gemini-2.5-flash-lite"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
@@ -82,20 +86,7 @@ def _build_news_context(body: dict) -> str:
 
 
 def _build_prompt(news_context: str) -> str:
-    return f"""당신은 방위산업·군수 동향 분석가입니다.
-아래 뉴스 검색 결과만 근거로 방산 섹터 브리핑을 작성하세요.
-추측은 최소화하고, 뉴스에 근거한 인사이트를 제시하세요.
-모든 텍스트는 한국어로 작성하세요.
-
-{news_context}
-
-다음 JSON 형식으로만 응답하세요:
-- sentiment: positive | neutral | negative
-- sentimentLabel: 한 줄 감성 라벨 (예: "방산 섹터 긍정")
-- confidence: 0-100 정수 (뉴스 근거 충분도)
-- summary: 2-3문장 핵심 요약
-- insights: 정확히 3개 — type은 opportunity, risk, watch 각 1개씩
-- sectorScores: 4개 섹터 점수 (0-100) — 지상장비, 방공·미사일, UAS·드론, 함정·해양"""
+    return render_prompt("defense-analysis", NEWS_CONTEXT=news_context)
 
 
 def _extract_json(text: str) -> dict:
