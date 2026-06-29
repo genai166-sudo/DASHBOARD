@@ -14,6 +14,12 @@ module.exports = async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     runtime: "vercel-serverless",
-    tavilyConfigured: Boolean(process.env.TAVILY_API_KEY),
+    tavilyConfigured: Boolean(getApiKey()),
+    keyPrefix: getApiKey().startsWith("tvly-") ? "tvly-..." : "invalid-format",
   });
 };
+
+function getApiKey() {
+  const raw = process.env.TAVILY_API_KEY || "";
+  return raw.trim().replace(/^["']|["']$/g, "");
+}

@@ -53,8 +53,13 @@ def pick_allowed_fields(body: dict) -> dict:
     return {k: body[k] for k in ALLOWED_BODY_KEYS if k in body}
 
 
+def get_api_key() -> str:
+    raw = os.environ.get("TAVILY_API_KEY", "")
+    return raw.strip().strip('"').strip("'")
+
+
 def tavily_search(body: dict) -> tuple[int, dict]:
-    api_key = os.environ.get("TAVILY_API_KEY", "").strip()
+    api_key = get_api_key()
     if not api_key:
         return 500, {"error": "TAVILY_API_KEY is not configured on the server"}
 
@@ -79,7 +84,9 @@ def tavily_search(body: dict) -> tuple[int, dict]:
         raw = e.read().decode("utf-8", errors="replace")
         try:
             detail = json.loads(raw)
-            message = detail.get("detail") or detail.get("error") or raw
+            message = detail.get("detail") or detail.get("error") or detail.get("message") or raw
+            if isinstance(message, dict):
+                message = message.get("error") or str(message)
         except json.JSONDecodeError:
             message = raw or "Tavily API request failed"
         return e.code, {"error": str(message)}
