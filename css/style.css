@@ -626,6 +626,15 @@ body {
 .fx-row__change.up { color: var(--danger); }
 .fx-row__change.down { color: var(--accent); }
 
+.fx-updated--live {
+  color: var(--accent) !important;
+}
+
+.fx-updated--mock {
+  color: #ff8080 !important;
+  font-weight: 600;
+}
+
 .fx-chart-wrap {
   height: 80px;
   position: relative;

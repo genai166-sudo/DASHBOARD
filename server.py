@@ -24,6 +24,7 @@ PORT = int(os.environ.get("PORT", "3000"))
 TAVILY_URL = "https://api.tavily.com/search"
 NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
 EXCHANGE_RATE_API_URL = "https://v6.exchangerate-api.com/v6"
+OPEN_ER_API_URL = "https://open.er-api.com/v6/latest/USD"
 FRANKFURTER_URL = "https://api.frankfurter.app"
 
 ALLOWED_BODY_KEYS = frozenset({
@@ -228,11 +229,20 @@ def fetch_fx_rates() -> tuple[int, dict]:
                 usd_base = data.get("conversion_rates")
             else:
                 print(
-                    f"WARNING: ExchangeRate-API failed ({data.get('error-type', 'unknown')}) — Frankfurter fallback",
+                    f"WARNING: ExchangeRate-API failed ({data.get('error-type', 'unknown')}) — fallback",
                     file=sys.stderr,
                 )
         except RuntimeError as e:
-            print(f"WARNING: ExchangeRate-API error ({e}) — Frankfurter fallback", file=sys.stderr)
+            print(f"WARNING: ExchangeRate-API error ({e}) — fallback", file=sys.stderr)
+
+    if not usd_base:
+        try:
+            data = http_get_json(OPEN_ER_API_URL)
+            if data.get("result") == "success":
+                usd_base = data.get("rates")
+                source = "open.er-api"
+        except RuntimeError as e:
+            print(f"WARNING: open.er-api error ({e}) — Frankfurter fallback", file=sys.stderr)
 
     if not usd_base:
         try:
@@ -279,6 +289,7 @@ def fetch_fx_rates() -> tuple[int, dict]:
     return 200, {
         "updated": updated,
         "source": source,
+        "live": True,
         "rates": build_rate_rows(current, previous),
         "usdTrend": usd_trend,
     }
