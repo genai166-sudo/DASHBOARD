@@ -1,0 +1,15 @@
+{
+  "name": "lig-dashboard",
+  "private": true,
+  "description": "방산 동향 대시보드 + Tavily 프록시",
+  "scripts": {
+    "dev": "node server/dev-server.js",
+    "start": "node server/dev-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}

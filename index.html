@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>방산 동향 대시보드 | Defense Trends</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="scanline"></div>
+
+  <header class="header">
+    <div class="header__brand">
+      <div class="header__logo">◈</div>
+      <div>
+        <h1>방산 동향 대시보드</h1>
+        <p class="header__subtitle">Global Defense Industry Intelligence</p>
+      </div>
+    </div>
+    <div class="header__meta">
+      <span class="badge badge--live">LIVE</span>
+      <span id="current-time" class="header__time"></span>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <!-- KPI Cards -->
+    <section class="kpi-grid">
+      <article class="kpi-card">
+        <div class="kpi-card__label">글로벌 방위비 (2025E)</div>
+        <div class="kpi-card__value">$2.46T</div>
+        <div class="kpi-card__change up">▲ 4.8% YoY</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-card__label">방산 M&A 거래액</div>
+        <div class="kpi-card__value">$87.3B</div>
+        <div class="kpi-card__change up">▲ 12.1% YoY</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-card__label">무기 수출 Top 5 점유율</div>
+        <div class="kpi-card__value">76.4%</div>
+        <div class="kpi-card__change neutral">집중도 ↑</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-card__label">AI·드론 예산 비중</div>
+        <div class="kpi-card__value">18.7%</div>
+        <div class="kpi-card__change up">▲ 3.2%p</div>
+      </article>
+    </section>
+
+    <!-- Intelligence Cards -->
+    <section class="intel-grid">
+      <article class="intel-card intel-card--news">
+        <div class="intel-card__header">
+          <span class="intel-card__icon">📰</span>
+          <h2>방산 뉴스</h2>
+          <span class="intel-card__badge" id="news-badge">Tavily</span>
+        </div>
+        <form id="news-search-form" class="news-search">
+          <input
+            id="news-search-input"
+            type="search"
+            placeholder="방산·군수·NATO…"
+            value="defense industry Korea military export"
+            autocomplete="off"
+          />
+          <button type="submit" aria-label="뉴스 검색">검색</button>
+        </form>
+        <div class="intel-card__body panel__body--scroll" id="intel-news"></div>
+      </article>
+      <article class="intel-card intel-card--bid">
+        <div class="intel-card__header">
+          <span class="intel-card__icon">📋</span>
+          <h2>입찰·조달</h2>
+          <span class="intel-card__badge">DAPA·NATO</span>
+        </div>
+        <div class="intel-card__body panel__body--scroll" id="intel-bids"></div>
+      </article>
+      <article class="intel-card intel-card--fx">
+        <div class="intel-card__header">
+          <span class="intel-card__icon">💱</span>
+          <h2>환율</h2>
+          <span class="intel-card__badge" id="fx-updated">—</span>
+        </div>
+        <div class="intel-card__body">
+          <div id="fx-rates" class="fx-list"></div>
+          <div class="fx-chart-wrap">
+            <canvas id="chart-fx"></canvas>
+          </div>
+        </div>
+      </article>
+      <article class="intel-card intel-card--ai">
+        <div class="intel-card__header">
+          <span class="intel-card__icon">🤖</span>
+          <h2>AI 분석</h2>
+          <span class="intel-card__badge intel-card__badge--ai">Briefing</span>
+        </div>
+        <div class="intel-card__body" id="intel-ai"></div>
+      </article>
+    </section>
+
+    <!-- Charts Row 1 -->
+    <section class="chart-grid">
+      <article class="panel panel--wide">
+        <div class="panel__header">
+          <h2>지역별 방위비 추이 (2019–2025E)</h2>
+          <span class="panel__tag">단위: 십억 USD</span>
+        </div>
+        <div class="panel__body">
+          <canvas id="chart-regional"></canvas>
+        </div>
+      </article>
+      <article class="panel">
+        <div class="panel__header">
+          <h2>무기체계별 수출 비중</h2>
+          <span class="panel__tag">2024</span>
+        </div>
+        <div class="panel__body panel__body--center">
+          <canvas id="chart-weapons"></canvas>
+        </div>
+      </article>
+    </section>
+
+    <!-- Charts Row 2 -->
+    <section class="chart-grid">
+      <article class="panel">
+        <div class="panel__header">
+          <h2>주요국 방위비 GDP 대비 (%)</h2>
+          <span class="panel__tag">2024</span>
+        </div>
+        <div class="panel__body">
+          <canvas id="chart-gdp"></canvas>
+        </div>
+      </article>
+      <article class="panel">
+        <div class="panel__header">
+          <h2>방산기업 매출 Top 10</h2>
+          <span class="panel__tag">2024 · 십억 USD</span>
+        </div>
+        <div class="panel__body">
+          <canvas id="chart-companies"></canvas>
+        </div>
+      </article>
+      <article class="panel">
+        <div class="panel__header">
+          <h2>핵심 기술 투자 성장률</h2>
+          <span class="panel__tag">2023→2025E</span>
+        </div>
+        <div class="panel__body">
+          <canvas id="chart-tech"></canvas>
+        </div>
+      </article>
+    </section>
+
+    <!-- Bottom Row -->
+    <section class="bottom-grid">
+      <article class="panel">
+        <div class="panel__header">
+          <h2>최근 방산 동향</h2>
+          <span class="panel__tag" id="news-feed-tag">Tavily News</span>
+        </div>
+        <div class="panel__body panel__body--scroll">
+          <ul id="news-feed" class="news-list"></ul>
+        </div>
+      </article>
+      <article class="panel">
+        <div class="panel__header">
+          <h2>분쟁·긴장 지수</h2>
+          <span class="panel__tag">Conflict Index</span>
+        </div>
+        <div class="panel__body">
+          <div id="conflict-index" class="conflict-list"></div>
+        </div>
+      </article>
+      <article class="panel">
+        <div class="panel__header">
+          <h2>한국 방산 수출 현황</h2>
+          <span class="panel__tag">2024</span>
+        </div>
+        <div class="panel__body">
+          <canvas id="chart-korea"></canvas>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>※ 본 대시보드의 데이터는 공개 자료 기반 추정치이며, 실제 수치와 차이가 있을 수 있습니다.</span>
+    <span>SIPRI · IISS · Jane's · KIDA 참고</span>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/tavily-client.js"></script>
+  <script src="js/news-service.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

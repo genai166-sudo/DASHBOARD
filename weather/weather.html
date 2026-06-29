@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>국내 주요 도시 날씨 | Open-Meteo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header__title">
+      <h1>🇰🇷 국내 주요 도시 날씨</h1>
+      <p>Open-Meteo 실시간 데이터 · OpenStreetMap 지도</p>
+    </div>
+    <div class="header__meta" id="header-time"></div>
+  </header>
+
+  <div id="error" class="error-banner" hidden></div>
+  <div id="loading" class="loading">날씨 데이터 불러오는 중…</div>
+
+  <main class="layout">
+    <aside class="panel">
+      <div class="panel__head">
+        <span>도시 목록</span>
+        <span class="panel__tag">8개 도시</span>
+      </div>
+      <ul id="city-list" class="city-list"></ul>
+    </aside>
+
+    <section class="panel map-panel">
+      <div class="panel__head">
+        <span>대한민국 날씨 지도</span>
+        <span class="panel__tag">OpenStreetMap · 무료</span>
+      </div>
+      <div class="map-wrap">
+        <div class="map-overlay">마커 클릭 → 도시 상세</div>
+        <div id="map"></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="panel__head">
+        <span>상세 정보</span>
+        <span class="panel__tag">Current</span>
+      </div>
+      <div id="detail-panel" class="detail-body">
+        <div class="detail-placeholder">지도 또는 목록에서 도시를 선택하세요</div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    데이터: Open-Meteo · 지도: OpenStreetMap + Leaflet · API Key 불필요
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/cities.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    function tickClock() {
+      document.getElementById("header-time").textContent =
+        new Date().toLocaleString("ko-KR", {
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+        });
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+  </script>
+</body>
+</html>

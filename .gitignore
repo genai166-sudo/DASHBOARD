@@ -1,0 +1,23 @@
+# ── Secrets (절대 커밋 금지) ──
+.env
+.env.*
+!.env.example
+secrets/
+
+# Dependencies
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+.venv/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.log
+.vercel
+.cursor/

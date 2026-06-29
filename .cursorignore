@@ -1,0 +1,7 @@
+﻿# Cursor AI가 읽지 못하도록 차단 (API 키·비밀값)
+.env
+.env.*
+!.env.example
+secrets/
+**/*.pem
+**/*.key

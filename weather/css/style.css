@@ -1,0 +1,371 @@
+:root {
+  --bg: #0c1220;
+  --bg-panel: #141c2e;
+  --bg-card: #1a2540;
+  --border: #2a3654;
+  --text: #eef3fb;
+  --text-muted: #8b9bb8;
+  --accent: #4da6ff;
+  --accent-warm: #ffb347;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --radius: 12px;
+  --font: "Noto Sans KR", system-ui, sans-serif;
+  --mono: "JetBrains Mono", monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 10% 0%, rgba(77, 166, 255, 0.12) 0%, transparent 45%),
+    radial-gradient(ellipse at 90% 100%, rgba(255, 179, 71, 0.08) 0%, transparent 40%);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(20, 28, 46, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+.header__title h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.header__title p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.header__meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap: 1rem;
+  padding: 1rem 1.5rem 1.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 64px);
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.panel__head {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel__tag {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+/* City list */
+.city-list {
+  list-style: none;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+.city-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.city-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.city-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(42, 54, 84, 0.6);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.city-item:hover {
+  background: rgba(77, 166, 255, 0.06);
+}
+
+.city-item.active {
+  background: rgba(77, 166, 255, 0.12);
+  border-left: 3px solid var(--accent);
+}
+
+.city-item__icon {
+  font-size: 1.4rem;
+  width: 2rem;
+  text-align: center;
+}
+
+.city-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.city-item__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.city-item__desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.city-item__temp {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-warm);
+}
+
+/* Map */
+.map-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+}
+
+.map-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 460px;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+.map-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  background: rgba(20, 28, 46, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.weather-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.weather-marker__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(77, 166, 255, 0.92);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+}
+
+.leaflet-popup-content {
+  margin: 10px 12px;
+  font-family: var(--font);
+  font-size: 0.85rem;
+}
+
+.leaflet-container {
+  background: var(--bg-secondary, #111820);
+  font-family: var(--font);
+}
+
+.popup-temp {
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--accent-warm);
+}
+
+.popup-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Detail panel */
+.detail-body {
+  padding: 1.25rem;
+}
+
+.detail-placeholder {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.detail-hero {
+  text-align: center;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.detail-hero__icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.detail-hero__city {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+.detail-hero__temp {
+  font-family: var(--mono);
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: var(--accent-warm);
+  margin-top: 0.25rem;
+}
+
+.detail-hero__desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.detail-stat {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.detail-stat__label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.detail-stat__value {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+.detail-updated {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* Loading & error */
+.loading,
+.error-banner {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.85rem;
+}
+
+.loading {
+  color: var(--text-muted);
+}
+
+.error-banner {
+  color: #ff8080;
+  background: rgba(255, 80, 80, 0.1);
+  border-bottom: 1px solid rgba(255, 80, 80, 0.3);
+}
+
+.footer {
+  text-align: center;
+  padding: 0.75rem;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .map-panel {
+    order: -1;
+    min-height: 400px;
+  }
+
+  .map-wrap {
+    min-height: 360px;
+  }
+
+  .city-list {
+    max-height: 320px;
+  }
+}
