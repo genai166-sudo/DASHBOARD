@@ -88,7 +88,7 @@ def _aggregate_intraday(snapshots: list[dict], bucket_min: int, lookback_min: in
     return {
         "labels": labels,
         "data": [buckets[k] for k in keys],
-        "sparse": len(keys) < 3,
+        "sparse": len(keys) == 0,
     }
 
 
@@ -138,6 +138,27 @@ def fetch_fx_chart(interval: str, http_get_json) -> dict:
         chart["interval"] = interval
         chart["intervalLabel"] = meta["label"]
         chart["pair"] = "USD/KRW"
+        chart["live"] = bool(chart["data"])
+        return chart
+
+    if interval == "7d":
+        chart = fetch_daily_chart(http_get_json, days=7)
+        with _lock:
+            snapshots = load_snapshots()
+        if snapshots:
+            today_label = f"{date.today().month}/{date.today().day}"
+            live_krw = snapshots[-1]["krw"]
+            if chart["data"] and chart["labels"][-1] != today_label:
+                chart["labels"].append(today_label)
+                chart["data"].append(live_krw)
+            elif not chart["data"]:
+                chart["labels"] = [today_label]
+                chart["data"] = [live_krw]
+                chart["sparse"] = False
+        chart["interval"] = "7d"
+        chart["intervalLabel"] = "7일"
+        chart["pair"] = "USD/KRW"
+        chart["live"] = bool(chart["data"])
         return chart
 
     if interval == "1M":
@@ -145,10 +166,12 @@ def fetch_fx_chart(interval: str, http_get_json) -> dict:
         chart["interval"] = "1M"
         chart["intervalLabel"] = "1월"
         chart["pair"] = "USD/KRW"
+        chart["live"] = bool(chart["data"])
         return chart
 
     chart = fetch_daily_chart(http_get_json, days=90)
     chart["interval"] = "1d"
     chart["intervalLabel"] = "1일"
     chart["pair"] = "USD/KRW"
+    chart["live"] = bool(chart["data"])
     return chart

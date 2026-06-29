@@ -28,6 +28,7 @@ from worldbank_proxy import fetch_worldbank_stats  # noqa: E402
 from gemini_proxy import analyze_defense_news, get_gemini_key  # noqa: E402
 from prompt_loader import KNOWN_PROMPTS  # noqa: E402
 from fx_history import fetch_fx_chart, record_snapshot  # noqa: E402
+from dapa_bids_proxy import fetch_dapa_bids, get_data_go_kr_key  # noqa: E402
 PORT = int(os.environ.get("PORT", "3000"))
 TAVILY_URL = "https://api.tavily.com/search"
 NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
@@ -92,6 +93,21 @@ def http_get_json(url: str, timeout: int = 30) -> dict:
         except json.JSONDecodeError:
             message = raw
         raise RuntimeError(str(message)) from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Connection failed: {e.reason}") from e
+
+
+def http_get_bytes(url: str, timeout: int = 30) -> bytes:
+    req = urllib.request.Request(
+        url,
+        method="GET",
+        headers={"User-Agent": "LIG-Dashboard/1.0 (dapa-bids-proxy)"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read()
+    except urllib.error.HTTPError as e:
+        raise e
     except urllib.error.URLError as e:
         raise RuntimeError(f"Connection failed: {e.reason}") from e
 
@@ -426,6 +442,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "fxConfigured": bool(get_fx_key()),
                 "naverConfigured": bool(client_id and client_secret),
                 "geminiConfigured": bool(get_gemini_key()),
+                "dapaConfigured": bool(get_data_go_kr_key()),
             })
             return
         if path == "/api/naver/search":
@@ -442,11 +459,32 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             parsed = urllib.parse.urlparse(self.path)
             qs = urllib.parse.parse_qs(parsed.query)
             interval = (qs.get("interval", ["1d"])[0] or "1d").strip()
-            if interval not in {"1m", "10m", "30m", "1d", "1M"}:
-                self.send_json(400, {"error": "interval must be 1m, 10m, 30m, 1d, or 1M"})
+            if interval not in {"1m", "10m", "30m", "7d", "1d", "1M"}:
+                self.send_json(400, {"error": "interval must be 1m, 10m, 30m, 7d, 1d, or 1M"})
                 return
             chart = fetch_fx_chart(interval, http_get_json)
             self.send_json(200, chart)
+            return
+        if path == "/api/bids/dapa":
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            try:
+                page_no = int(qs.get("pageNo", ["1"])[0])
+                num_of_rows = int(qs.get("numOfRows", ["10"])[0])
+                days_back = int(qs.get("daysBack", ["30"])[0])
+            except ValueError:
+                self.send_json(400, {"error": "pageNo, numOfRows, daysBack must be numbers"})
+                return
+            try:
+                data = fetch_dapa_bids(
+                    page_no=page_no,
+                    num_of_rows=num_of_rows,
+                    days_back=days_back,
+                    http_get_bytes=http_get_bytes,
+                )
+                self.send_json(200, data)
+            except RuntimeError as e:
+                self.send_json(502, {"error": str(e)})
             return
         if path == "/api/stats/worldbank":
             cached = cache_get("worldbank_stats", 900)
@@ -491,6 +529,7 @@ def main() -> None:
     print(f"Naver API:  GET  http://localhost:{PORT}/api/naver/search?query=방산")
     print(f"FX API:     GET  http://localhost:{PORT}/api/fx/rates")
     print(f"FX Chart:   GET  http://localhost:{PORT}/api/fx/chart?interval=1d")
+    print(f"DAPA Bids:  GET  http://localhost:{PORT}/api/bids/dapa")
     print(f"Stats API:  GET  http://localhost:{PORT}/api/stats/worldbank")
     print(f"Gemini API: POST http://localhost:{PORT}/api/gemini/analyze")
     print(f"Prompts:    prompt/ ({', '.join(KNOWN_PROMPTS)})")
@@ -502,6 +541,8 @@ def main() -> None:
         print("WARNING: NAVER_CLIENT_ID / NAVER_CLIENT_SECRET not set", file=sys.stderr)
     if not get_gemini_key():
         print("WARNING: GEMINI_API_KEY not set", file=sys.stderr)
+    if not get_data_go_kr_key():
+        print("WARNING: DATA_GO_KR_SERVICE_KEY not set", file=sys.stderr)
     if not get_fx_key():
         print("WARNING: EXCHANGERATE_API_KEY not set — Frankfurter fallback for FX", file=sys.stderr)
 

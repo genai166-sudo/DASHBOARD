@@ -106,7 +106,7 @@
         <div class="intel-card__header">
           <span class="intel-card__icon">📋</span>
           <h2>입찰·조달</h2>
-          <span class="intel-card__badge">DAPA·NATO</span>
+          <span class="intel-card__badge" id="bids-badge">로딩</span>
         </div>
         <div class="intel-card__body panel__body--scroll" id="intel-bids"></div>
       </article>
@@ -123,7 +123,8 @@
               <button type="button" class="fx-interval" data-interval="1m">1분</button>
               <button type="button" class="fx-interval" data-interval="10m">10분</button>
               <button type="button" class="fx-interval" data-interval="30m">30분</button>
-              <button type="button" class="fx-interval fx-interval--active" data-interval="1d">1일</button>
+              <button type="button" class="fx-interval fx-interval--active" data-interval="7d">7일</button>
+              <button type="button" class="fx-interval" data-interval="1d">1일</button>
               <button type="button" class="fx-interval" data-interval="1M">1월</button>
             </div>
             <span class="fx-chart-hint" id="fx-chart-hint" hidden></span>
@@ -258,6 +259,7 @@
   <script src="js/naver-client.js"></script>
   <script src="js/news-service.js"></script>
   <script src="js/fx-service.js"></script>
+  <script src="js/bids-service.js"></script>
   <script src="js/ai-service.js"></script>
   <script src="js/app.js"></script>
 </body>

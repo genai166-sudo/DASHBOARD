@@ -236,42 +236,13 @@ function initConflictIndex() {
     .join("");
 }
 
-const BID_STATUS_CLASS = {
-  urgent: "urgent",
-  open: "open",
-  closed: "closed",
-};
-
-function initIntelBids() {
-  const container = document.getElementById("intel-bids");
-  container.innerHTML = DEFENSE_DATA.bids
-    .map((bid) => `
-      <div class="bid-item">
-        <div class="bid-item__top">
-          <span class="bid-item__id">${bid.id}</span>
-          <span class="bid-item__deadline bid-item__deadline--${BID_STATUS_CLASS[bid.status]}">${bid.deadline}</span>
-        </div>
-        <div class="bid-item__title">${bid.title}</div>
-        <div class="bid-item__meta">
-          <span>${bid.agency}</span>
-          <span class="bid-item__budget">${bid.budget}</span>
-        </div>
-      </div>`)
-    .join("");
-}
-
-function initIntelFx() {
-  /* fx-service.js → loadFxRates() */
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   initClock();
   initNewsSearch();
   initGeminiAnalysis();
   renderFallbackNews("tavily");
   renderFallbackNews("naver");
-  initIntelBids();
-  renderFxFallback();
+  renderBidsLoading();
   initRegionalChart();
   initWeaponsChart();
   initGdpChart();
@@ -281,4 +252,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initConflictIndex();
   loadAllNews();
   loadFxRates();
+  loadDefenseBids();
 });

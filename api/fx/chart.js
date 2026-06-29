@@ -1,5 +1,5 @@
 /**
- * GET /api/fx/chart?interval=1m|10m|30m|1d|1M
+ * GET /api/fx/chart?interval=1m|10m|30m|7d|1d|1M
  */
 
 const { fetchFxChart, recordFxSnapshot, fetchUsdBaseRates, calcPairRates } = require("../../lib/fx-proxy");
