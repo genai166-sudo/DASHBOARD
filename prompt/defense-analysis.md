@@ -14,6 +14,6 @@ description: Tavily·Naver 방산 뉴스 기반 Gemini 브리핑 프롬프트
 - sentiment: positive | neutral | negative
 - sentimentLabel: 한 줄 감성 라벨 (예: "방산 섹터 긍정")
 - confidence: 0-100 정수 (뉴스 근거 충분도)
-- summary: 2-3문장 핵심 요약
+- summary: 4-5문장 핵심 요약 (구체적 수치·국가·기업명 포함)
 - insights: 정확히 3개 — type은 opportunity, risk, watch 각 1개씩
 - sectorScores: 4개 섹터 점수 (0-100) — 지상장비, 방공·미사일, UAS·드론, 함정·해양

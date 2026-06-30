@@ -1,6 +1,6 @@
 /** POST /api/kakao/send-summary */
 
-const { sendMemoText, isKakaoConfigured, getPublicUrl } = require("../../lib/kakao-proxy");
+const { sendMemoTemplate, isKakaoConfigured, getPublicUrl } = require("../../lib/kakao-proxy");
 const { collectDashboardSummaryData } = require("../../lib/dashboard-summary");
 
 module.exports = async function handler(req, res) {
@@ -17,8 +17,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const detail = await collectDashboardSummaryData();
-    await sendMemoText(detail.text, getPublicUrl());
+    const detail = await collectDashboardSummaryData(getPublicUrl());
+    await sendMemoTemplate(detail.template);
     return res.status(200).json({
       ok: true,
       sent: true,

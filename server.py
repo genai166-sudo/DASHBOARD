@@ -37,7 +37,7 @@ from kakao_proxy import (  # noqa: E402
     get_refresh_token,
     is_kakao_configured,
     save_refresh_token,
-    send_memo_text,
+    send_memo_template,
 )
 from dashboard_summary import collect_dashboard_summary_data  # noqa: E402
 PORT = int(os.environ.get("PORT", "3000"))
@@ -408,7 +408,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             })
             return
         try:
-            detail, text = collect_dashboard_summary_data(
+            detail, template, text = collect_dashboard_summary_data(
                 fetch_fx_rates=fetch_fx_rates,
                 tavily_search=tavily_search,
                 naver_news_search=naver_news_search,
@@ -416,8 +416,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 analyze_defense_news=analyze_defense_news,
                 http_get_bytes=http_get_bytes,
                 http_get_json=http_get_json,
+                web_url=get_public_url(),
             )
-            send_memo_text(text, get_public_url())
+            send_memo_template(template)
             self.send_json(200, {
                 "ok": True,
                 "sent": True,

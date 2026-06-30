@@ -144,19 +144,8 @@ def refresh_access_token() -> str:
     return access
 
 
-def send_memo_text(text: str, web_url: str | None = None) -> dict:
+def send_memo_template(template: dict) -> dict:
     access_token = refresh_access_token()
-    link_url = web_url or get_public_url()
-
-    template = {
-        "object_type": "text",
-        "text": text[:200],
-        "link": {
-            "web_url": link_url,
-            "mobile_web_url": link_url,
-        },
-        "button_title": "대시보드 열기",
-    }
 
     body = urllib.parse.urlencode({
         "template_object": json.dumps(template, ensure_ascii=False),
@@ -185,3 +174,18 @@ def send_memo_text(text: str, web_url: str | None = None) -> dict:
         raise RuntimeError(str(msg)) from e
     except urllib.error.URLError as e:
         raise RuntimeError(f"Kakao send failed: {e.reason}") from e
+
+
+def send_memo_text(text: str, web_url: str | None = None) -> dict:
+    link_url = web_url or get_public_url()
+
+    template = {
+        "object_type": "text",
+        "text": text[:200],
+        "link": {
+            "web_url": link_url,
+            "mobile_web_url": link_url,
+        },
+        "button_title": "대시보드 열기",
+    }
+    return send_memo_template(template)
