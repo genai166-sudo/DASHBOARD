@@ -1,7 +1,12 @@
-/** POST /api/kakao/send-summary */
+/** POST /api/kakao/send-summary — HTML 보고서 생성 후 카카오톡 링크 전송 */
 
 const { sendMemoTemplate, isKakaoConfigured, getPublicUrl } = require("../../lib/kakao-proxy");
 const { collectDashboardSummaryData } = require("../../lib/dashboard-summary");
+const {
+  publishReport,
+  buildReportHeadline,
+  buildKakaoReportMessage,
+} = require("../../lib/report-builder");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -17,12 +22,18 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const detail = await collectDashboardSummaryData(getPublicUrl());
-    await sendMemoTemplate(detail.template);
+    const publicUrl = getPublicUrl();
+    const detail = await collectDashboardSummaryData();
+    const report = publishReport(detail, publicUrl);
+    const headline = buildReportHeadline(detail);
+    const template = buildKakaoReportMessage(headline, report.url, publicUrl);
+    await sendMemoTemplate(template);
+
     return res.status(200).json({
       ok: true,
       sent: true,
-      text: detail.text,
+      reportUrl: report.url,
+      headline,
       summary: {
         tavilyCount: detail.tavilyCount,
         naverCount: detail.naverCount,

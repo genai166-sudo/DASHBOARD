@@ -40,6 +40,13 @@ from kakao_proxy import (  # noqa: E402
     send_memo_template,
 )
 from dashboard_summary import collect_dashboard_summary_data  # noqa: E402
+from report_builder import (  # noqa: E402
+    build_kakao_report_message,
+    build_report_headline,
+    build_report_html,
+    load_report_payload,
+    publish_report,
+)
 PORT = int(os.environ.get("PORT", "3000"))
 TAVILY_URL = "https://api.tavily.com/search"
 NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
@@ -408,7 +415,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             })
             return
         try:
-            detail, template, text = collect_dashboard_summary_data(
+            detail = collect_dashboard_summary_data(
                 fetch_fx_rates=fetch_fx_rates,
                 tavily_search=tavily_search,
                 naver_news_search=naver_news_search,
@@ -416,13 +423,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 analyze_defense_news=analyze_defense_news,
                 http_get_bytes=http_get_bytes,
                 http_get_json=http_get_json,
-                web_url=get_public_url(),
             )
+            public_url = get_public_url()
+            report = publish_report(detail, public_url)
+            headline = build_report_headline(detail)
+            template = build_kakao_report_message(headline, report["url"], public_url)
             send_memo_template(template)
             self.send_json(200, {
                 "ok": True,
                 "sent": True,
-                "text": text,
+                "reportUrl": report["url"],
+                "headline": headline,
                 "summary": {
                     "tavilyCount": detail.get("tavilyCount", 0),
                     "naverCount": detail.get("naverCount", 0),
@@ -496,6 +507,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = self.path.split("?")[0]
+        if path.startswith("/reports/") and path.endswith(".html"):
+            report_id = path[len("/reports/") : -len(".html")]
+            payload = load_report_payload(report_id)
+            if not payload:
+                self.send_html(404, "<h1>404</h1><p>보고서를 찾을 수 없습니다.</p>")
+                return
+            self.send_html(200, build_report_html(payload))
+            return
         if path == "/api/health":
             client_id, client_secret = get_naver_credentials()
             self.send_json(200, {
@@ -542,7 +561,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 <style>body{{font-family:sans-serif;background:#0a0e14;color:#e8edf4;padding:2rem;max-width:640px;margin:auto}}
 code{{background:#151c26;padding:2px 6px;border-radius:4px;word-break:break-all}}</style></head><body>
 <h1>✅ 카카오톡 연동 완료</h1>
-<p>이제 <strong>카카오톡 요약 전송</strong> 버튼을 사용할 수 있습니다.</p>
+<p>이제 <strong>카카오톡 보고서 전송</strong> 버튼을 사용할 수 있습니다.</p>
 {"<p>Refresh Token이 .data/kakao-token.json 에 저장되었습니다.</p><pre><code>KAKAO_REFRESH_TOKEN=" + rt + "</code></pre>" if rt else "<p>Refresh Token 없음 — talk_message 동의 확인</p>"}
 <p>Redirect URI: <code>{get_redirect_uri()}</code></p>
 <p><a href="/">대시보드로 돌아가기</a></p></body></html>"""

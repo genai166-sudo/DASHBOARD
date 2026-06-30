@@ -14,7 +14,7 @@ function setKakaoButtonState(btn, state) {
   if (state === "loading") {
     btn.textContent = "전송 중…";
   } else {
-    btn.textContent = "📲 카카오톡 요약 전송";
+    btn.textContent = "📲 카카오톡 보고서 전송";
   }
 }
 
@@ -49,7 +49,7 @@ async function initKakaoSend() {
         throw new Error(data.error || "전송 실패");
       }
 
-      alert("카카오톡으로 요약을 보냈습니다.\n나와의 채팅에서 확인하세요.");
+      alert(`카카오톡으로 보고서 링크를 보냈습니다.\n\n${data.headline || ""}\n${data.reportUrl || ""}`);
     } catch (err) {
       alert(`전송 실패: ${err.message}`);
     } finally {
