@@ -29,6 +29,17 @@ from gemini_proxy import analyze_defense_news, get_gemini_key  # noqa: E402
 from prompt_loader import KNOWN_PROMPTS  # noqa: E402
 from fx_history import fetch_fx_chart, record_snapshot  # noqa: E402
 from dapa_bids_proxy import fetch_dapa_bids, get_data_go_kr_key  # noqa: E402
+from kakao_proxy import (  # noqa: E402
+    build_oauth_login_url,
+    exchange_code_for_token,
+    get_public_url,
+    get_redirect_uri,
+    get_refresh_token,
+    is_kakao_configured,
+    save_refresh_token,
+    send_memo_text,
+)
+from dashboard_summary import collect_dashboard_summary_data  # noqa: E402
 PORT = int(os.environ.get("PORT", "3000"))
 TAVILY_URL = "https://api.tavily.com/search"
 NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
@@ -381,7 +392,42 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if path == "/api/gemini/analyze":
             self.handle_gemini_analyze()
             return
+        if path == "/api/kakao/send-summary":
+            self.handle_kakao_send_summary()
+            return
         self.send_error(404, "Not Found")
+
+    def handle_kakao_send_summary(self) -> None:
+        if not is_kakao_configured():
+            self.send_json(401, {
+                "error": "Kakao not linked — open /api/kakao/oauth/login first",
+                "loginUrl": "/api/kakao/oauth/login",
+            })
+            return
+        try:
+            detail, text = collect_dashboard_summary_data(
+                fetch_fx_rates=fetch_fx_rates,
+                tavily_search=tavily_search,
+                naver_news_search=naver_news_search,
+                fetch_dapa_bids=fetch_dapa_bids,
+                analyze_defense_news=analyze_defense_news,
+                http_get_bytes=http_get_bytes,
+                http_get_json=http_get_json,
+            )
+            send_memo_text(text, get_public_url())
+            self.send_json(200, {
+                "ok": True,
+                "sent": True,
+                "text": text,
+                "summary": {
+                    "tavilyCount": detail.get("tavilyCount", 0),
+                    "naverCount": detail.get("naverCount", 0),
+                    "bidsCount": detail.get("bidsCount", 0),
+                    "hasAi": bool(detail.get("ai")),
+                },
+            })
+        except RuntimeError as e:
+            self.send_json(502, {"error": str(e)})
 
     def handle_gemini_analyze(self) -> None:
         length = int(self.headers.get("Content-Length", 0))
@@ -422,6 +468,19 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         status, data = tavily_search(body)
         self.send_json(status, data)
 
+    def send_html(self, status: int, html: str) -> None:
+        payload = html.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def send_redirect(self, url: str) -> None:
+        self.send_response(302)
+        self.send_header("Location", url)
+        self.end_headers()
+
     def send_json(self, status: int, data: dict) -> None:
         payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -443,7 +502,49 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "naverConfigured": bool(client_id and client_secret),
                 "geminiConfigured": bool(get_gemini_key()),
                 "dapaConfigured": bool(get_data_go_kr_key()),
+                "kakaoConfigured": is_kakao_configured(),
             })
+            return
+        if path == "/api/kakao/status":
+            self.send_json(200, {
+                "configured": is_kakao_configured(),
+                "hasAppKey": bool(os.environ.get("KAKAO_REST_API_KEY", "").strip()),
+                "hasRefreshToken": bool(get_refresh_token()),
+                "loginUrl": "/api/kakao/oauth/login",
+            })
+            return
+        if path == "/api/kakao/oauth/login":
+            try:
+                self.send_redirect(build_oauth_login_url())
+            except RuntimeError as e:
+                self.send_json(500, {"error": str(e)})
+            return
+        if path == "/api/kakao/oauth/callback":
+            parsed = urllib.parse.urlparse(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            if qs.get("error"):
+                self.send_html(400, f"<h1>카카오 로그인 실패</h1><p>{qs['error'][0]}</p>")
+                return
+            code = (qs.get("code", [""])[0] or "").strip()
+            if not code:
+                self.send_json(400, {"error": "code is required"})
+                return
+            try:
+                tokens = exchange_code_for_token(code)
+                if tokens.get("refresh_token"):
+                    save_refresh_token(tokens["refresh_token"])
+                rt = tokens.get("refresh_token", "")
+                html = f"""<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/><title>카카오 연동 완료</title>
+<style>body{{font-family:sans-serif;background:#0a0e14;color:#e8edf4;padding:2rem;max-width:640px;margin:auto}}
+code{{background:#151c26;padding:2px 6px;border-radius:4px;word-break:break-all}}</style></head><body>
+<h1>✅ 카카오톡 연동 완료</h1>
+<p>이제 <strong>카카오톡 요약 전송</strong> 버튼을 사용할 수 있습니다.</p>
+{"<p>Refresh Token이 .data/kakao-token.json 에 저장되었습니다.</p><pre><code>KAKAO_REFRESH_TOKEN=" + rt + "</code></pre>" if rt else "<p>Refresh Token 없음 — talk_message 동의 확인</p>"}
+<p>Redirect URI: <code>{get_redirect_uri()}</code></p>
+<p><a href="/">대시보드로 돌아가기</a></p></body></html>"""
+                self.send_html(200, html)
+            except RuntimeError as e:
+                self.send_html(500, f"<h1>토큰 발급 실패</h1><p>{e}</p>")
             return
         if path == "/api/naver/search":
             parsed = urllib.parse.urlparse(self.path)
@@ -532,6 +633,8 @@ def main() -> None:
     print(f"DAPA Bids:  GET  http://localhost:{PORT}/api/bids/dapa")
     print(f"Stats API:  GET  http://localhost:{PORT}/api/stats/worldbank")
     print(f"Gemini API: POST http://localhost:{PORT}/api/gemini/analyze")
+    print(f"Kakao API:  POST http://localhost:{PORT}/api/kakao/send-summary")
+    print(f"Kakao OAuth: GET  http://localhost:{PORT}/api/kakao/oauth/login")
     print(f"Prompts:    prompt/ ({', '.join(KNOWN_PROMPTS)})")
 
     if not get_tavily_key():
@@ -543,6 +646,8 @@ def main() -> None:
         print("WARNING: GEMINI_API_KEY not set", file=sys.stderr)
     if not get_data_go_kr_key():
         print("WARNING: DATA_GO_KR_SERVICE_KEY not set", file=sys.stderr)
+    if not is_kakao_configured():
+        print("WARNING: Kakao not linked — visit /api/kakao/oauth/login", file=sys.stderr)
     if not get_fx_key():
         print("WARNING: EXCHANGERATE_API_KEY not set — Frankfurter fallback for FX", file=sys.stderr)
 

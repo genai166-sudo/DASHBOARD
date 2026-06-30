@@ -24,5 +24,6 @@ module.exports = async function handler(req, res) {
     naverConfigured: Boolean(getEnvKey("NAVER_CLIENT_ID") && getEnvKey("NAVER_CLIENT_SECRET")),
     geminiConfigured: Boolean(getEnvKey("GEMINI_API_KEY")),
     dapaConfigured: Boolean(getEnvKey("DATA_GO_KR_SERVICE_KEY")),
+    kakaoConfigured: Boolean(getEnvKey("KAKAO_REST_API_KEY") && getEnvKey("KAKAO_REFRESH_TOKEN")),
   });
 };
