@@ -2,13 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "functions": {
-    "api/[...path].js": {
+    "api/index.js": {
       "maxDuration": 30
     }
   },
   "rewrites": [
+    { "source": "/api/:path*", "destination": "/api?path=:path*" },
     { "source": "/weather", "destination": "/weather/weather.html" },
-    { "source": "/reports/:id.html", "destination": "/api/reports/:id" }
+    { "source": "/reports/:id.html", "destination": "/api?path=reports/:id" }
   ],
   "headers": [
     {
