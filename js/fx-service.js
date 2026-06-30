@@ -2,10 +2,8 @@
  * 환율 — GET /api/fx/rates · 차트 /api/fx/chart (실시간 API만, 목업 없음)
  */
 
-const FX_INTRADAY_INTERVALS = new Set(["1m", "10m", "30m"]);
-
 let fxChartInstance = null;
-let fxInterval = "7d";
+let fxInterval = "1w";
 let fxChartTimer = null;
 
 function fxServerHint() {
@@ -95,10 +93,6 @@ function clearFxChart() {
   }
 }
 
-function isIntradayInterval(interval) {
-  return FX_INTRADAY_INTERVALS.has(interval);
-}
-
 function renderFxChart(trend) {
   const canvas = document.getElementById("chart-fx");
   const interval = trend?.interval || fxInterval;
@@ -106,22 +100,11 @@ function renderFxChart(trend) {
 
   if (!canvas || !hasData) {
     clearFxChart();
-    setFxChartHint(
-      isIntradayInterval(interval)
-        ? "분봉 데이터 없음 — 서버 실행 후 1분마다 수집됩니다"
-        : "실시간 차트 데이터 없음",
-      true
-    );
+    setFxChartHint("차트 데이터 없음", true);
     return;
   }
 
-  if (isIntradayInterval(interval) && !trend.live) {
-    clearFxChart();
-    setFxChartHint("분봉 데이터 없음 — 서버 실행 후 1분마다 수집됩니다", true);
-    return;
-  }
-
-  setFxChartHint(`${trend.intervalLabel || interval} · USD/KRW · 실시간`, false);
+  setFxChartHint(`${trend.intervalLabel || interval} · USD/KRW`, false);
 
   if (fxChartInstance) {
     fxChartInstance.destroy();
@@ -129,6 +112,7 @@ function renderFxChart(trend) {
 
   const values = trend.data;
   const padding = Math.max(1, (Math.max(...values) - Math.min(...values)) * 0.08);
+  const showPoints = values.length <= 14;
 
   fxChartInstance = new Chart(canvas, {
     type: "line",
@@ -140,7 +124,7 @@ function renderFxChart(trend) {
         borderColor: "#f0a030",
         backgroundColor: "rgba(240, 160, 48, 0.08)",
         borderWidth: 1.5,
-        pointRadius: values.length <= 12 ? 2 : 0,
+        pointRadius: showPoints ? 2 : 0,
         tension: 0.35,
         fill: true,
       }],
@@ -160,7 +144,7 @@ function renderFxChart(trend) {
         x: {
           display: true,
           grid: { display: false },
-          ticks: { font: { size: 9 }, maxTicksLimit: 6 },
+          ticks: { font: { size: 9 }, maxTicksLimit: 8 },
         },
         y: {
           display: false,
@@ -196,19 +180,13 @@ async function loadFxChart() {
   } catch (err) {
     console.warn("FX chart error:", err.message);
     clearFxChart();
-    setFxChartHint(
-      isIntradayInterval(fxInterval)
-        ? "분봉 데이터 없음 — 서버 실행 후 1분마다 수집됩니다"
-        : "차트 데이터를 불러올 수 없습니다",
-      true
-    );
+    setFxChartHint("차트 데이터를 불러올 수 없습니다", true);
   }
 }
 
 function scheduleFxChartRefresh() {
   clearInterval(fxChartTimer);
-  const ms = isIntradayInterval(fxInterval) ? 60_000 : 5 * 60_000;
-  fxChartTimer = setInterval(() => loadFxChart(), ms);
+  fxChartTimer = setInterval(() => loadFxChart(), 5 * 60_000);
 }
 
 function initFxIntervals() {
@@ -243,4 +221,3 @@ async function loadFxRates() {
 document.addEventListener("DOMContentLoaded", () => {
   initFxIntervals();
 });
-

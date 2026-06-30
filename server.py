@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT / "lib"))
 from worldbank_proxy import fetch_worldbank_stats  # noqa: E402
 from gemini_proxy import analyze_defense_news, get_gemini_key  # noqa: E402
 from prompt_loader import KNOWN_PROMPTS  # noqa: E402
-from fx_history import fetch_fx_chart, record_snapshot  # noqa: E402
+from fx_history import fetch_fx_chart  # noqa: E402
 from dapa_bids_proxy import fetch_dapa_bids, get_data_go_kr_key  # noqa: E402
 from kakao_proxy import (  # noqa: E402
     build_oauth_login_url,
@@ -314,11 +314,6 @@ def fetch_fx_rates() -> tuple[int, dict]:
     except RuntimeError as e:
         return 502, {"error": str(e)}
 
-    try:
-        record_snapshot(current["KRW"])
-    except OSError:
-        pass
-
     previous = None
     usd_trend = {"labels": [], "data": []}
     prev_date = (date.today() - timedelta(days=1)).isoformat()
@@ -582,9 +577,9 @@ code{{background:#151c26;padding:2px 6px;border-radius:4px;word-break:break-all}
         if path == "/api/fx/chart":
             parsed = urllib.parse.urlparse(self.path)
             qs = urllib.parse.parse_qs(parsed.query)
-            interval = (qs.get("interval", ["1d"])[0] or "1d").strip()
-            if interval not in {"1m", "10m", "30m", "7d", "1d", "1M"}:
-                self.send_json(400, {"error": "interval must be 1m, 10m, 30m, 7d, 1d, or 1M"})
+            interval = (qs.get("interval", ["1w"])[0] or "1w").strip()
+            if interval not in {"1d", "1w", "1mo", "1y", "10y", "7d", "1M"}:
+                self.send_json(400, {"error": "interval must be 1d, 1w, 1mo, 1y, or 10y"})
                 return
             chart = fetch_fx_chart(interval, http_get_json)
             self.send_json(200, chart)
@@ -629,21 +624,6 @@ code{{background:#151c26;padding:2px 6px;border-radius:4px;word-break:break-all}
         super().do_GET()
 
 
-def fx_snapshot_worker() -> None:
-    while True:
-        try:
-            data = http_get_json(OPEN_ER_API_URL, timeout=10)
-            if data.get("result") == "success":
-                krw = (data.get("rates") or {}).get("KRW")
-                if krw:
-                    record_snapshot(krw)
-                    time.sleep(60)
-                    continue
-        except Exception:
-            pass
-        time.sleep(60)
-
-
 def main() -> None:
     load_env(ROOT / ".env")
 
@@ -652,7 +632,7 @@ def main() -> None:
     print(f"Tavily API: POST http://localhost:{PORT}/api/tavily/search")
     print(f"Naver API:  GET  http://localhost:{PORT}/api/naver/search?query=방산")
     print(f"FX API:     GET  http://localhost:{PORT}/api/fx/rates")
-    print(f"FX Chart:   GET  http://localhost:{PORT}/api/fx/chart?interval=1d")
+    print(f"FX Chart:   GET  http://localhost:{PORT}/api/fx/chart?interval=1w")
     print(f"DAPA Bids:  GET  http://localhost:{PORT}/api/bids/dapa")
     print(f"Stats API:  GET  http://localhost:{PORT}/api/stats/worldbank")
     print(f"Gemini API: POST http://localhost:{PORT}/api/gemini/analyze")
@@ -673,8 +653,6 @@ def main() -> None:
         print("WARNING: Kakao not linked — visit /api/kakao/oauth/login", file=sys.stderr)
     if not get_fx_key():
         print("WARNING: EXCHANGERATE_API_KEY not set — Frankfurter fallback for FX", file=sys.stderr)
-
-    threading.Thread(target=fx_snapshot_worker, daemon=True).start()
 
     try:
         server.serve_forever()
