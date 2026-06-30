@@ -307,7 +307,10 @@ def fetch_fx_rates() -> tuple[int, dict]:
     except RuntimeError as e:
         return 502, {"error": str(e)}
 
-    record_snapshot(current["KRW"])
+    try:
+        record_snapshot(current["KRW"])
+    except OSError:
+        pass
 
     previous = None
     usd_trend = {"labels": [], "data": []}

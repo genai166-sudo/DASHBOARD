@@ -21,12 +21,15 @@ INTERVALS = {
 }
 
 
-def _ensure_data_dir() -> None:
-    SNAPSHOT_FILE.parent.mkdir(parents=True, exist_ok=True)
+def _ensure_data_dir() -> bool:
+    try:
+        SNAPSHOT_FILE.parent.mkdir(parents=True, exist_ok=True)
+        return True
+    except OSError:
+        return False
 
 
 def load_snapshots() -> list[dict]:
-    _ensure_data_dir()
     if not SNAPSHOT_FILE.is_file():
         return []
     try:
@@ -39,9 +42,13 @@ def load_snapshots() -> list[dict]:
 
 
 def save_snapshots(snapshots: list[dict]) -> None:
-    _ensure_data_dir()
-    trimmed = snapshots[-MAX_SNAPSHOTS:]
-    SNAPSHOT_FILE.write_text(json.dumps(trimmed), encoding="utf-8")
+    if not _ensure_data_dir():
+        return
+    try:
+        trimmed = snapshots[-MAX_SNAPSHOTS:]
+        SNAPSHOT_FILE.write_text(json.dumps(trimmed), encoding="utf-8")
+    except OSError:
+        pass
 
 
 def record_snapshot(krw: float) -> None:
