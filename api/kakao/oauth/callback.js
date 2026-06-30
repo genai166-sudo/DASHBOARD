@@ -4,6 +4,7 @@ const {
   exchangeCodeForToken,
   saveRefreshToken,
   getRedirectUri,
+  isServerless,
 } = require("../../../lib/kakao-proxy");
 
 module.exports = async function handler(req, res) {
@@ -22,18 +23,24 @@ module.exports = async function handler(req, res) {
 
   try {
     const tokens = await exchangeCodeForToken(code);
-    if (tokens.refresh_token) {
-      saveRefreshToken(tokens.refresh_token);
-    }
+    const saved = tokens.refresh_token ? saveRefreshToken(tokens.refresh_token) : false;
+    const onVercel = isServerless();
+
+    const tokenBlock = tokens.refresh_token
+      ? onVercel || !saved
+        ? `<p><strong>Vercel/서버리스:</strong> 아래 Refresh Token을 Vercel Environment Variables에 등록한 뒤 재배포하세요.</p>
+<pre><code>KAKAO_REFRESH_TOKEN=${tokens.refresh_token}</code></pre>`
+        : `<p>Refresh Token이 <code>.data/kakao-token.json</code> 에 저장되었습니다.</p>
+<p>배포 시에는 Environment Variables에도 동일 값을 넣으세요:</p>
+<pre><code>KAKAO_REFRESH_TOKEN=${tokens.refresh_token}</code></pre>`
+      : `<p>Refresh Token이 없습니다. 동의 항목 <code>talk_message</code> 확인 후 다시 로그인하세요.</p>`;
 
     const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/><title>카카오 연동 완료</title>
 <style>body{font-family:sans-serif;background:#0a0e14;color:#e8edf4;padding:2rem;max-width:640px;margin:auto}
 code{background:#151c26;padding:2px 6px;border-radius:4px;word-break:break-all}</style></head><body>
 <h1>✅ 카카오톡 연동 완료</h1>
-<p>이제 대시보드에서 <strong>카카오톡 요약 전송</strong> 버튼을 사용할 수 있습니다.</p>
-${tokens.refresh_token ? `<p>Refresh Token이 서버에 저장되었습니다.</p>
-<p>Vercel 배포 시 Environment Variables에 추가하세요:</p>
-<pre><code>KAKAO_REFRESH_TOKEN=${tokens.refresh_token}</code></pre>` : `<p>Refresh Token이 없습니다. 동의 항목 talk_message 확인 후 다시 로그인하세요.</p>`}
+<p>OAuth 인증이 완료되었습니다.</p>
+${tokenBlock}
 <p>Redirect URI: <code>${getRedirectUri()}</code></p>
 <p><a href="/">대시보드로 돌아가기</a></p></body></html>`;
 
